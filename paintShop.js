@@ -50,8 +50,7 @@ function candidateSolution(customer, colorSelected){
         } else {
             if(colorSelected.colors[colorIndex].finish === null){
                 candidate.push({color: element.color, 
-                    finish: element.finish, 
-                    isNew: true});
+                    finish: element.finish});
             }
         }
     });
@@ -97,9 +96,8 @@ function mixColor(data){
                 }
 
                 for(let candidate of resultCandidates){
-                    let colorCandidate = candidate;
-                    colorSelected.colors[colorCandidate.color-1] = {color: colorCandidate.color, 
-                        finish: colorCandidate.finish, isReadyOnly: false};
+                    colorSelected.colors[candidate.color-1] = {color: candidate.color, 
+                        finish: candidate.finish, isReadyOnly: false};
                 }
             }
             
