@@ -15,10 +15,14 @@ const txtParser = (input) => {
             const customElements = [];
 
             itemList.forEach(element => {
+                let isReadyOnly = false;
+                if(itemList.length === 1){
+                    isReadyOnly = true;
+                }
                 if(element === 'M' || element === 'G'){
                     customElements[customElements.length-1].finish = element;
                 } else {
-                    customElements.push({color: parseInt(element)});
+                    customElements.push({color: parseInt(element), isReadyOnly: isReadyOnly});
                 }
             });
             customerPreferences.push(customElements);
@@ -35,13 +39,37 @@ const txtParser = (input) => {
 
 const NO_SOLUTION = 'No solution exists';
 
+function candidateSolution(customer, colorSelected){
+    let candidate = [];
+
+    customer.forEach(element => {
+        let colorIndex = element.color -1;
+        
+        if(customer.length === 1){
+            return;
+        } else {
+            if(colorSelected.colors[colorIndex].finish === null){
+                candidate.push({color: element.color, 
+                    finish: element.finish, 
+                    isNew: true});
+            }
+        }
+    });
+
+    return candidate;
+}
+
 function mixColor(data){
     //Set the size of the array
+    let resultCandidates = [];
     const colorSelected = { hasMatte: false, colors: [], hasNoSolution: false };
-    colorSelected.colors = new Array(data.numColors);
-    
+    //Load color array
+    for(let i = 0; i < data.numColors; i++){
+        colorSelected.colors.push({ color: i+1, finish: null, isReadyOnly: false });
+    }
+
     //Sort customer preferences by number of colors
-    data.customerPreferences.sort((a,b) => {
+    data.customerPreferences.sort((a,b) => {       
         return a.length - b.length;
     });
 
@@ -51,32 +79,27 @@ function mixColor(data){
             let colorIndex = element.color -1;
 
             if(customer.length === 1){
-                if(colorSelected.colors[colorIndex] !== undefined){
-                    if(colorSelected.colors[colorIndex].finish !== element.finish 
-                        && colorSelected.colors[colorIndex].isReadyOnly){
-                        colorSelected.hasNoSolution = true;
-                        colorSelected.colors[colorIndex] = undefined;
-                    } else if(colorSelected.colors[colorIndex].finish !== element.finish){
-                        colorSelected.colors[colorIndex].finish = element.finish;
-                        colorSelected.colors[colorIndex].isReadyOnly = true;
-                    }
-                } else {
-                    if(element.finish === 'M'){
-                        colorSelected.hasMatte = true;
-                    }
-                    colorSelected.colors[colorIndex] = {color: element.color, finish: element.finish, isReadyOnly: true};
+                if(colorSelected.colors[colorIndex].finish !== null
+                    && colorSelected.colors[colorIndex].finish !== element.finish 
+                    && colorSelected.colors[colorIndex].isReadyOnly){
+                    colorSelected.hasNoSolution = true;
+                    return;
                 }
+
+                colorSelected.colors[colorIndex].finish = element.finish;
+                colorSelected.colors[colorIndex].isReadyOnly = true;
             } else {
-                if(colorSelected.colors[colorIndex] === undefined){
-                    let finish = 'G';
-                    if(!colorSelected.hasMatte){
-                        finish = element.finish;
-                    }
-                    colorSelected.colors[colorIndex] = {color: element.color, finish: finish, isReadyOnly: false};
-                } else if(colorSelected.colors[colorIndex].finish !== element.finish
-                        && element.finish === 'G' 
-                        && !colorSelected.colors[colorIndex].isReadyOnly){
-                            colorSelected.colors[colorIndex].finish = element.finish;
+                let checkCandidates = candidateSolution(customer, colorSelected);
+
+                resultCandidates = resultCandidates.concat(checkCandidates);
+                if(checkCandidates.length > 1){
+                    return;
+                }
+
+                for(let candidate of resultCandidates){
+                    let colorCandidate = candidate;
+                    colorSelected.colors[colorCandidate.color-1] = {color: colorCandidate.color, 
+                        finish: colorCandidate.finish, isReadyOnly: false};
                 }
             }
             
@@ -98,11 +121,10 @@ try {
         console.log(NO_SOLUTION);
     } else {
         result.colors.forEach(item => {
-            outputString += item.finish +' ';
+            outputString += item.finish === null ? 'G ' : item.finish  +' ';
         });
+        console.log(outputString);
     }
-
-    console.log(outputString);
 
 } catch (err) {
     console.error(err);
